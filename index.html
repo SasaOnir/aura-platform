@@ -879,11 +879,11 @@ function renderLanding(){
         <div class="s"><div class="v">${Object.keys(state.tracks).length}+</div><div class="l">Brani AI</div></div>
         <div class="s"><div class="v">${Object.keys(state.profiles).length}+</div><div class="l">Artisti</div></div>
         <div class="s"><div class="v">100%</div><div class="l">Catena dichiarata</div></div>
-        <div class="s"><div class="v">GDPR</div><div class="l">Conforme UE</div></div>
+        <div class="s"><div class="v">GDPR</div><div class="l">Dati locali</div></div>
       </div>
     </div>
     <footer>
-      <div>© ${new Date().getFullYear()} Aura · Demo conforme GDPR/DSA · EU AI Act art.50</div>
+      <div>© ${new Date().getFullYear()} Aura · Prototipo dimostrativo · non in produzione · i dati restano nel tuo browser</div>
       <div class="links">
         <a href="#legal/privacy">Privacy Policy</a>
         <a href="#legal/terms">Termini</a>
@@ -940,7 +940,7 @@ function renderRecover(){
       <div class="brand" onclick="go('landing')" style="cursor:pointer"><div class="dot"></div><div><div class="name">Aura</div><div class="tag">RECUPERO PASSWORD</div></div></div>
       <h1>Password dimenticata?</h1>
       <div class="sub">Riceverai un codice a 6 cifre via email per reimpostare la password.</div>
-      <div class="hint-banner" style="margin-bottom:14px"><b>Sicurezza.</b> Le password sono hashate SHA-256+salt (irreversibili), per questo si reimpostano anziché recuperarle. Il codice OTP è validato dal server e scade in 10 minuti.</div>
+      <div class="hint-banner" style="margin-bottom:14px"><b>Prototipo.</b> In questa demo l'account vive solo nel tuo browser e la password è hashata localmente: non usare password reali. Nella versione di produzione l'accesso e il recupero passano dal server (Argon2id, sessioni protette). Il codice OTP è validato dal server e scade in 10 minuti.</div>
       ${AURA_MAIL_URL? '' : '<div class="hint-banner" style="margin-bottom:14px;background:rgba(255,209,102,.10);border-color:rgba(255,209,102,.4)"><b>Modalità demo locale.</b> Worker non configurato (AURA_MAIL_URL vuoto). Il codice <b>123456</b> funziona comunque per test. Per email reali: deploya il Worker (vedi <code>worker/README-worker.md</code>).</div>'}
 
       <div class="field" id="f-email"><label>Email dell'account</label><input type="email" id="rec-email" placeholder="tu@esempio.com"><div class="error">Email non valida. Controlla o <a href="#" onclick="go('register');return false">registrati</a>.</div></div>
@@ -1067,7 +1067,7 @@ function renderRegister(){
     <div class="auth-card" style="max-width:520px">
       <div class="brand" onclick="go('landing')" style="cursor:pointer"><div class="dot"></div><div><div class="name">Aura</div><div class="tag">PIATTAFORMA · ARTISTI AI</div></div></div>
       <h1>Crea il tuo account</h1>
-      <div class="sub">Solo i dati strettamente necessari. Conforme GDPR.</div>
+      <div class="sub">Solo i dati strettamente necessari.</div>
 
       <div class="field" id="r-name"><label>Nome artista *</label><input type="text" id="reg-name" placeholder="Es. Marta R."><div class="error">Inserisci un nome artista.</div><div class="hint">Sarà pubblico. Puoi cambiarlo in seguito.</div></div>
       <div class="field" id="r-email"><label>Email *</label><input type="email" id="reg-email" placeholder="tu@esempio.com"><div class="error">Email non valida o già registrata.</div><div class="hint">Usata solo per accesso e notifiche essenziali. Non ceduta a terzi.</div></div>
@@ -1208,7 +1208,7 @@ function viewHome(){
   return `
     <div class="topbar"><div><h1>Benvenuta su Aura</h1><div class="sub">Brani generati con AI, da artisti che dichiarano la propria catena creativa.</div></div>
     <div class="actions"><button class="btn btn-ghost" onclick="go('browse')">Esplora tutti</button><button class="btn btn-primary" onclick="go('upload')">⬆️ Carica un brano</button></div></div>
-    <div class="hint-banner"><b>Piattaforma conforme.</b> Audio reale (Web Audio + IndexedDB). Profilo, brani, like e consensi salvati localmente. Registra utenti con password hashate SHA-256.</div>
+    <div class="hint-banner"><b>Prototipo dimostrativo.</b> Audio reale (Web Audio + IndexedDB). Profilo, brani, like e consensi salvati localmente. Registra utenti con password hashate SHA-256.</div>
     <div class="chips">${genreChips}</div>
     <div class="section-head"><h2>In evidenza</h2><span class="more" onclick="go('browse')">Vedi tutti →</span></div>
     <div class="grid grid-tracks">${featured||emptyInline("Nessun brano")}</div>
@@ -1734,7 +1734,7 @@ function legalTerms(d){ return {title:"Termini di servizio", html:`
   <h2>9. Modifiche</h2>
   <p>I termini possono essere aggiornati con preavviso. Le modifiche sostanziali richiedono nuova accettazione.</p>
   <h2>10. Legge applicabile</h2>
-  <p>Legge italiana, con foro di competenza. Conforme GDPR, DSA, EU AI Act.</p>
+  <p>Legge italiana, con foro di competenza. Testo dimostrativo: va validato da un legale prima della produzione.</p>
   `}; }
 function legalCookie(d){ return {title:"Cookie Policy", html:`
   <p>Aura usa <b>solo cookie tecnici necessari</b> al funzionamento (sessione, preferenze, stato dell'applicazione salvato in localStorage/IndexedDB).</p>

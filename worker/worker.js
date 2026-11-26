@@ -17,7 +17,6 @@
 // Cambiali se deployi l'HTML su un altro dominio.
 const ALLOWED_ORIGINS = [
   "https://sasaonir.github.io",          // GitHub Pages produzione
-  "https://homeland-firm-pan-phys.trycloudflare.com", // tunnel dev (temporaneo)
   "http://localhost:8765",                // dev locale
   "http://127.0.0.1:8765",                // dev locale
 ];
@@ -64,10 +63,30 @@ function isValidEmail(e) {
 }
 
 function genOTP() {
-  // 6 cifre, crittograficamente sicuro
-  const arr = new Uint8Array(6);
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b => (b % 10)).join("");
+  // 6 cifre dal CSPRNG, con rejection sampling: "b % 10" su un byte (0-255) darebbe
+  // più probabilità alle cifre 0-5. Si scartano i byte >= 250.
+  const out = [];
+  while (out.length < 6) {
+    const buf = new Uint8Array(12);
+    crypto.getRandomValues(buf);
+    for (const b of buf) { if (b < 250 && out.length < 6) out.push(b % 10); }
+  }
+  return out.join("");
+}
+
+// Nel KV non si salva mai il codice in chiaro: solo SHA-256(email:codice).
+async function otpDigest(email, code) {
+  const data = new TextEncoder().encode(email + ":" + code);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Confronto a tempo costante (niente early-exit sul primo carattere diverso).
+function safeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 async function isRateLimited(ip) {
@@ -130,13 +149,14 @@ async function handleRequestOTP(body, ip, origin) {
   const code = genOTP();
   // Salva OTP in KV: chiave = otp:<email>, valore = { code, expiresAt, attempts }
   const now = Math.floor(Date.now() / 1000);
-  await AURA_KV.put(`otp:${email}`, JSON.stringify({ code, expiresAt: now + OTP_TTL_SECONDS, attempts: 0 }), { expirationTtl: OTP_TTL_SECONDS });
+  await AURA_KV.put(`otp:${email}`, JSON.stringify({ h: await otpDigest(email, code), expiresAt: now + OTP_TTL_SECONDS, attempts: 0 }), { expirationTtl: OTP_TTL_SECONDS });
 
   try {
     await sendOTPEmail(email, code);
     return jsonResp(200, { ok: true, message: "Codice inviato via email. Controlla la tua casella." }, origin);
   } catch (e) {
-    return jsonResp(502, { ok: false, error: "Invio email fallito: " + e.message }, origin);
+    console.error("OTP email failed:", e.message); // il dettaglio resta nei log del Worker, non va al client
+    return jsonResp(502, { ok: false, error: "Invio email non riuscito. Riprova tra poco." }, origin);
   }
 }
 
@@ -162,7 +182,7 @@ async function handleVerifyOTP(body, ip, origin) {
     await AURA_KV.delete(`otp:${email}`);
     return jsonResp(400, { ok: false, error: "Troppi tentativi. Richiedi un nuovo codice." }, origin);
   }
-  if (d.code !== code) {
+  if (!safeEqual(d.h || "", await otpDigest(email, code))) {
     d.attempts++;
     await AURA_KV.put(`otp:${email}`, JSON.stringify(d), { expirationTtl: OTP_TTL_SECONDS });
     return jsonResp(400, { ok: false, error: `Codice errato. Tentativi rimasti: ${5 - d.attempts}` }, origin);
@@ -202,7 +222,8 @@ export default {
       if (url.pathname === "/verify-otp")  return await handleVerifyOTP(body, ip, origin);
       return jsonResp(404, { ok: false, error: "Endpoint non trovato. Usa /request-otp o /verify-otp." }, origin);
     } catch (e) {
-      return jsonResp(500, { ok: false, error: "Errore interno: " + e.message }, origin);
+      console.error("Worker error:", e.message);
+      return jsonResp(500, { ok: false, error: "Errore interno." }, origin);
     }
   },
 };
